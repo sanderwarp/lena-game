@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Le Jeu des Habitudes de Léna ✨</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FF4DA6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --pink: #FF4DA6;
+    --pink-light: #FFB3D9;
+    --pink-dark: #C4006F;
+    --purple: #A855F7;
+    --purple-light: #E9D5FF;
+    --yellow: #FACC15;
+    --yellow-light: #FEF9C3;
+    --mint: #34D399;
+    --mint-light: #D1FAE5;
+    --coral: #FB923C;
+    --coral-light: #FFEDD5;
+    --bg: #FFF0F7;
+    --card: #FFFFFF;
+    --text: #1E1B2E;
+    --muted: #9CA3AF;
+    --shadow: 0 8px 32px rgba(255, 77, 166, 0.15);
+    --radius: 20px;
+    --radius-sm: 12px;
+    /* Safe areas pour iPhone notch/Dynamic Island/home bar */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html { height: 100%; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    background-image: 
+      radial-gradient(circle at 20% 10%, rgba(255,77,166,0.12) 0%, transparent 50%),
+      radial-gradient(circle at 80% 90%, rgba(168,85,247,0.10) 0%, transparent 50%);
+    min-height: 100%;
+    color: var(--text);
+    /* Espace en bas = nav height + safe area home bar */
+    padding-bottom: calc(68px + var(--sab));
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+  }
+
+  /* === HEADER === */
+  .header {
+    background: linear-gradient(135deg, #FF4DA6 0%, #A855F7 100%);
+    /* Padding top = contenu + safe area top (notch/Dynamic Island) */
+    padding: calc(16px + var(--sat)) 20px 72px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 40px;
+    background: var(--bg);
+    border-radius: 50% 50% 0 0 / 40px 40px 0 0;
+  }
+  .header h1 {
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(20px, 5.5vw, 26px);
+    font-weight: 800;
+    color: white;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    line-height: 1.2;
+  }
+  .header h1 span {
+    font-size: clamp(24px, 7vw, 32px);
+    display: block;
+  }
+  .header-week {
+    color: rgba(255,255,255,0.85);
+    font-size: clamp(11px, 3vw, 13px);
+    margin-top: 5px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .confetti-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .confetti-item {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    animation: confettiFall linear infinite;
+    opacity: 0.6;
+  }
+
+  /* === SCORE CARDS === */
+  .score-section {
+    padding: 0 12px;
+    margin-top: -40px;
+    position: relative;
+    z-index: 10;
+  }
+  .score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .score-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 14px 12px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .score-card.main {
+    grid-column: 1 / -1;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #FF4DA6 0%, #C4006F 100%);
+    color: white;
+  }
+  .score-card.main .score-val {
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(42px, 12vw, 56px);
+    font-weight: 800;
+    line-height: 1;
+    color: white;
+  }
+  .score-card.main .score-label {
+    font-size: clamp(11px, 3vw, 13px);
+    color: rgba(255,255,255,0.85);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .score-card.main .euro-val {
+    font-size: clamp(22px, 6vw, 28px);
+    font-weight: 800;
+    color: var(--yellow);
+    margin-top: 6px;
+  }
+  .score-val {
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(26px, 8vw, 32px);
+    font-weight: 800;
+    line-height: 1;
+  }
+  .score-label {
+    font-size: clamp(10px, 2.5vw, 11px);
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+  .score-card .emoji-bg {
+    position: absolute;
+    right: 6px; top: 6px;
+    font-size: 24px;
+    opacity: 0.15;
+  }
+  .potential { color: var(--purple); }
+  .negative { color: #EF4444; }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: rgba(255,255,255,0.3);
+    border-radius: 20px;
+    height: 8px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 20px;
+    background: var(--yellow);
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* === SECTION TITLE === */
+  .section-title {
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(17px, 5vw, 20px);
+    font-weight: 700;
+    padding: 16px 14px 8px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .pill {
+    background: var(--pink-light);
+    color: var(--pink-dark);
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+  }
+
+  /* === TASK CARDS === */
+  .tasks-list { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .task-card {
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+  }
+  .task-card.done { border-color: var(--mint); background: var(--mint-light); }
+  .task-card.failed { border-color: #FECACA; background: #FEF2F2; }
+  .task-card:active { transform: scale(0.98); }
+
+  .task-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 12px;
+  }
+  .task-emoji {
+    font-size: 24px;
+    min-width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .task-info { flex: 1; min-width: 0; }
+  .task-name {
+    font-size: clamp(13px, 3.5vw, 14px);
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .task-sub {
+    font-size: clamp(10px, 2.5vw, 11px);
+    color: var(--muted);
+    margin-top: 3px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .task-points {
+    font-family: 'Baloo 2', cursive;
+    font-size: 18px;
+    font-weight: 800;
+    min-width: 40px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .task-points.pos { color: var(--pink); }
+  .task-points.neg { color: #EF4444; }
+  .task-points.both { color: var(--purple); font-size: 13px; }
+
+  /* Buttons */
+  .task-actions {
+    display: flex;
+    gap: 6px;
+    padding: 0 12px 10px 12px;
+  }
+  .btn-action {
+    flex: 1;
+    /* min 44px height — Apple HIG touch target */
+    min-height: 44px;
+    padding: 10px 8px;
+    border: none;
+    border-radius: 10px;
+    font-size: clamp(12px, 3.5vw, 14px);
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    font-family: 'Nunito', sans-serif;
+  }
+  .btn-action:active { transform: scale(0.95); }
+  .btn-yes { background: var(--mint); color: white; }
+  .btn-no { background: #FECACA; color: #B91C1C; }
+  .btn-done { background: var(--mint); color: white; }
+  .btn-done-pill { background: var(--yellow); color: #7C2D12; }
+  .btn-undo {
+    background: var(--pink-light);
+    color: var(--pink-dark);
+    font-size: 12px;
+    min-height: 36px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  /* state chip */
+  .state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .state-chip.success { background: var(--mint); color: white; }
+  .state-chip.fail { background: #EF4444; color: white; }
+
+  /* === WEEK TOGGLE === */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 12px 16px 0;
+  }
+  .week-nav button {
+    background: white;
+    border: 2px solid var(--pink-light);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pink);
+    font-weight: 700;
+    transition: background 0.15s;
+  }
+  .week-nav button:active { background: var(--pink-light); }
+  .week-nav span {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    min-width: 120px;
+    text-align: center;
+  }
+
+  /* === HISTORY / REWARD === */
+  .reward-banner {
+    margin: 12px 12px;
+    background: linear-gradient(135deg, var(--yellow) 0%, var(--coral) 100%);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 16px rgba(250,204,21,0.3);
+  }
+  .reward-banner .big-emoji { font-size: 36px; }
+  .reward-banner h3 { font-family: 'Baloo 2', cursive; font-size: 17px; font-weight: 700; color: white; }
+  .reward-banner p { font-size: 12px; color: rgba(255,255,255,0.9); font-weight: 600; }
+
+  /* === BOTTOM NAV === */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: white;
+    display: flex;
+    border-top: 1px solid #F3F4F6;
+    /* Padding bottom = espace nav + home bar safe area */
+    padding: 8px 0 calc(8px + var(--sab));
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    z-index: 100;
+  }
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: clamp(9px, 2.5vw, 11px);
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    /* min 44px touch target */
+    min-height: 44px;
+    padding: 4px 0;
+    transition: color 0.2s;
+    border: none;
+    background: none;
+    font-family: 'Nunito', sans-serif;
+  }
+  .nav-tab .nav-icon { font-size: 24px; }
+  .nav-tab.active { color: var(--pink); }
+  .nav-tab.active .nav-icon { animation: bounce 0.4s ease; }
+
+  /* === SCREENS === */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* === TOAST === */
+  .toast {
+    position: fixed;
+    /* Toast sous la Dynamic Island/notch */
+    top: calc(16px + var(--sat));
+    left: 50%;
+    transform: translateX(-50%) translateY(calc(-80px - var(--sat)));
+    background: linear-gradient(135deg, #FF4DA6, #A855F7);
+    color: white;
+    padding: 12px 22px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: clamp(13px, 3.5vw, 15px);
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 24px rgba(255,77,166,0.4);
+    white-space: nowrap;
+    max-width: calc(100vw - 40px);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* === ANIMATIONS === */
+  @keyframes bounce {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-10px) rotate(0deg); opacity: 0.7; }
+    100% { transform: translateY(120px) rotate(360deg); opacity: 0; }
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    80% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes starSpin {
+    0% { transform: rotate(0deg) scale(0); opacity: 1; }
+    100% { transform: rotate(720deg) scale(3); opacity: 0; }
+  }
+  .pop-in { animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  /* Floating reward */
+  .float-reward {
+    position: fixed;
+    font-size: 28px;
+    font-weight: 900;
+    font-family: 'Baloo 2', cursive;
+    z-index: 9999;
+    pointer-events: none;
+    animation: floatUp 1.2s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(0) scale(0.5); opacity: 1; }
+    100% { transform: translateY(-120px) scale(1.5); opacity: 0; }
+  }
+
+  /* History */
+  .history-week {
+    background: white;
+    border-radius: var(--radius-sm);
+    margin: 0 12px 10px;
+    padding: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .history-week h3 {
+    font-family: 'Baloo 2', cursive;
+    font-size: 15px;
+    color: var(--pink-dark);
+    margin-bottom: 8px;
+  }
+  .history-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #F9FAFB; }
+  .history-row:last-child { border: none; font-weight: 700; }
+
+  /* Recipes */
+  .recipe-card {
+    background: white;
+    border-radius: var(--radius-sm);
+    margin: 0 12px 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  }
+  .recipe-header {
+    background: linear-gradient(135deg, var(--coral) 0%, var(--pink) 100%);
+    padding: 12px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .recipe-header h3 { font-family: 'Baloo 2', cursive; font-size: 15px; color: white; font-weight: 700; }
+  .recipe-header .badge { background: white; color: var(--pink-dark); padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .recipe-body { padding: 12px 14px; font-size: 13px; color: var(--text); line-height: 1.6; }
+
+  .add-recipe-btn {
+    display: block;
+    margin: 0 12px 12px;
+    background: linear-gradient(135deg, var(--purple) 0%, var(--pink) 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    width: calc(100% - 24px);
+    font-family: 'Baloo 2', cursive;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    min-height: 50px;
+    box-shadow: 0 4px 16px rgba(168,85,247,0.3);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 500;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: white;
+    border-radius: 24px 24px 0 0;
+    /* padding bas = espace + safe area home bar */
+    padding: 24px 20px calc(24px + var(--sab));
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-title { font-family: 'Baloo 2', cursive; font-size: 20px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+  .modal-input {
+    width: 100%;
+    padding: 13px 14px;
+    border: 2px solid var(--pink-light);
+    border-radius: 12px;
+    font-size: 16px; /* 16px évite le zoom auto sur iOS */
+    font-family: 'Nunito', sans-serif;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .modal-input:focus { border-color: var(--pink); }
+  textarea.modal-input { min-height: 90px; resize: none; }
+  .modal-footer { display: flex; gap: 10px; margin-top: 8px; }
+  .modal-btn {
+    flex: 1;
+    min-height: 50px;
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+  }
+  .modal-btn.confirm { background: var(--pink); color: white; }
+  .modal-btn.cancel { background: #F3F4F6; color: var(--muted); }
+
+  /* Squirrel count */
+  .squirrel-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin: 0 12px 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .squirrel-row .sq-label { flex: 1; font-weight: 700; font-size: clamp(13px, 3.5vw, 14px); }
+  .squirrel-count { font-family: 'Baloo 2', cursive; font-size: 26px; color: var(--coral); font-weight: 800; min-width: 36px; text-align: center; }
+  /* Boutons squirrel plus grands pour touch */
+  .sq-btn { background: var(--pink); border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 22px; color: white; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sq-btn.minus { background: #F3F4F6; color: var(--text); }
+
+  /* iPhone 12 mini (360px) — ajustements complémentaires */
+  @media (max-width: 375px) {
+    .score-card.main { padding: 14px 16px; }
+    .score-card.main .score-val { font-size: 38px; }
+    .score-card.main .euro-val { font-size: 20px; }
+    .score-val { font-size: 24px; }
+    .header h1 { font-size: 19px; }
+    .header h1 span { font-size: 23px; }
+    .section-title { font-size: 16px; padding: 12px 12px 6px; }
+    .task-inner { padding: 10px 10px; gap: 8px; }
+    .task-emoji { font-size: 22px; min-width: 28px; }
+    .task-actions { padding: 0 10px 9px 10px; gap: 5px; }
+    .btn-action { font-size: 12px; min-height: 42px; }
+    .score-section { padding: 0 10px; }
+    .tasks-list { padding: 0 10px; gap: 7px; }
+    .squirrel-row { margin: 0 10px 8px; }
+    .history-week { margin: 0 10px 10px; }
+    .recipe-card { margin: 0 10px 10px; }
+    .add-recipe-btn { margin: 0 10px 10px; width: calc(100% - 20px); }
+  }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast">🎉 Super !</div>
+
+<!-- MODAL RECIPE -->
+<div class="modal-overlay" id="recipeModal">
+  <div class="modal-box">
+    <div class="modal-title">📖 Nouveau plat !</div>
+    <input class="modal-input" id="recipeName" placeholder="Nom du plat..." />
+    <textarea class="modal-input" id="recipeDesc" placeholder="Description, ingrédients, notes..."></textarea>
+    <div class="modal-footer">
+      <button class="modal-btn cancel" onclick="closeModal()">Annuler</button>
+      <button class="modal-btn confirm" onclick="saveRecipe()">✨ Valider (+15 pts)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SCREEN: HOME ====== -->
+<div class="screen active" id="screen-home">
+  <div class="header">
+    <div class="confetti-bar" id="confettiBg"></div>
+    <div class="header-week" id="headerWeek">Semaine en cours</div>
+    <h1>🎮 <span>Le Jeu des Habitudes</span>de Léna ✨</h1>
+    <div class="header-week" id="headerDates"></div>
+  </div>
+
+  <div class="score-section">
+    <div class="score-grid">
+      <div class="score-card main">
+        <div class="score-label">⭐ POINTS ACTUELS</div>
+        <div class="score-val" id="currentPoints">0</div>
+        <div class="euro-val" id="currentEuro">💶 0,00 €</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="progressBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="score-card">
+        <div class="emoji-bg">🚀</div>
+        <div class="score-label">Potentiel max</div>
+        <div class="score-val potential" id="potentialPoints">0</div>
+        <div class="score-label" style="margin-top:2px" id="potentialEuro">0,00 €</div>
+      </div>
+      <div class="score-card">
+        <div class="emoji-bg">📉</div>
+        <div class="score-label">Pénalités</div>
+        <div class="score-val negative" id="penaltyPoints">0</div>
+        <div class="score-label" style="margin-top:2px;color:#EF4444">points perdus</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Squirrels -->
+  <div class="section-title">🐿️ Écureuils du jour</div>
+  <div class="squirrel-row">
+    <div class="sq-label">Ajouter des écureuils <br><span style="font-size:11px;color:var(--muted);font-weight:600">1 écureuil = 1 point</span></div>
+    <button class="sq-btn minus" onclick="changeSquirrels(-1)">−</button>
+    <div class="squirrel-count" id="squirrelCount">0</div>
+    <button class="sq-btn" onclick="changeSquirrels(1)">+</button>
+  </div>
+
+  <!-- Tasks with penalties -->
+  <div class="section-title">⏰ Habitudes du matin <span class="pill">+/−</span></div>
+  <div class="tasks-list" id="habitsSection"></div>
+
+  <div class="section-title">🧹 Tâches ménagères <span class="pill">bonus</span></div>
+  <div class="tasks-list" id="choresSection"></div>
+
+  <div class="section-title">👩‍🍳 Cuisine <span class="pill">obligatoire</span></div>
+  <div class="tasks-list" id="cookSection"></div>
+</div>
+
+<!-- ====== SCREEN: HISTORY ====== -->
+<div class="screen" id="screen-history">
+  <div class="header" style="padding-bottom:60px;padding-top:calc(16px + var(--sat))">
+    <div class="header-week">Historique</div>
+    <h1>📊 <span>Mes semaines</span>passées</h1>
+  </div>
+  <div id="historyContent" style="margin-top:-20px;padding-top:20px"></div>
+</div>
+
+<!-- ====== SCREEN: RECIPES ====== -->
+<div class="screen" id="screen-recipes">
+  <div class="header" style="padding-bottom:60px;padding-top:calc(16px + var(--sat))">
+    <div class="header-week">Mon livre</div>
+    <h1>📖 <span>Mes recettes</span>maison ✨</h1>
+  </div>
+  <div id="recipesContent" style="margin-top:-20px;padding-top:20px"></div>
+  <button class="add-recipe-btn" onclick="openModal()">➕ Ajouter un nouveau plat</button>
+</div>
+
+<!-- ====== BOTTOM NAV ====== -->
+<div class="bottom-nav">
+  <button class="nav-tab active" onclick="showScreen('home',this)">
+    <span class="nav-icon">🎮</span>
+    <span>Jeu</span>
+  </button>
+  <button class="nav-tab" onclick="showScreen('history',this)">
+    <span class="nav-icon">📊</span>
+    <span>Historique</span>
+  </button>
+  <button class="nav-tab" onclick="showScreen('recipes',this)">
+    <span class="nav-icon">📖</span>
+    <span>Recettes</span>
+  </button>
+</div>
+
+<script>
+// ========== SUPABASE CONFIG ==========
+// !! REMPLACE CES VALEURS PAR TES VRAIES CLÉS SUPABASE !!
+const SUPABASE_URL = 'https://aftxgokysbxmoeznlkzk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_jr9wCy7yCwLmyldk5ZBMuQ_0uk_E8ji';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ========== TASK DEFINITIONS ==========
+// [id, emoji, name, sub, points_success, points_fail, category, type]
+// type: 'yesno' = yes/no buttons | 'done' = single done button | 'special' = custom
+const TASKS = [
+  { id:'wake', emoji:'⏰', name:'Levée avant 7h10', sub:'Tous les matins (lun-ven)', pts:1, fail:-1, cat:'habits', type:'yesno' },
+  { id:'breakfast', emoji:'🥣', name:'Petit-déjeuner à 7h30', sub:'Bien manger le matin', pts:1, fail:-1, cat:'habits', type:'yesno' },
+  { id:'bed', emoji:'🌙', name:'Au lit à 21h30', sub:'Bonne nuit = bonne journée', pts:1, fail:-1, cat:'habits', type:'yesno' },
+  { id:'room', emoji:'🛏️', name:'Chambre en ordre', sub:'En ordre = +1 / Désordre = −1', pts:1, fail:-1, cat:'habits', type:'yesno' },
+  { id:'bathroom', emoji:'🛁', name:'Nettoyage salle de bain', sub:'+12 points', pts:12, fail:0, cat:'chores', type:'done' },
+  { id:'kitchen', emoji:'🍳', name:'Nettoyage cuisine', sub:'+10 points', pts:10, fail:0, cat:'chores', type:'done' },
+  { id:'full', emoji:'🧺', name:'Ménage complet', sub:'+60 points — le jackpot !', pts:60, fail:0, cat:'chores', type:'done' },
+  { id:'dishwasher', emoji:'🍽️', name:'Vider le lave-vaisselle', sub:'+2 points', pts:2, fail:0, cat:'chores', type:'done' },
+  { id:'laundry_start', emoji:'👕', name:'Lancer une machine', sub:'+1 point', pts:1, fail:0, cat:'chores', type:'done' },
+  { id:'laundry_dry', emoji:'🌬️', name:'Mettre sécher', sub:'+2 points', pts:2, fail:0, cat:'chores', type:'done' },
+  { id:'cook', emoji:'👩‍🍳', name:'Cuisiner un plat', sub:'Obligatoire ! Échec = −3 pts', pts:0, fail:-3, cat:'cook', type:'yesno' },
+  { id:'new_recipe', emoji:'📖', name:'Nouveau plat créé & validé', sub:'Plat inédit ajouté au livre de recettes', pts:15, fail:0, cat:'cook', type:'done' },
+];
+
+// ========== STATE ==========
+let weekKey = '';
+let state = {}; // { tasks: {id: 'done'|'failed'|null}, squirrels: 0 }
+let recipes = [];
+let history = [];
+
+// Ces tâches se réinitialisent chaque jour
+const DAILY_TASKS = ['wake', 'breakfast', 'bed'];
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+// Retourne la clé de stockage pour une tâche (avec date si daily)
+function taskStoreKey(id) {
+  return DAILY_TASKS.includes(id) ? id + '_' + todayKey() : id;
+}
+
+// Retourne l'état d'une tâche (gère daily vs weekly)
+function getTaskState(id) {
+  return (state.tasks || {})[taskStoreKey(id)] || null;
+}
+
+// ========== WEEK HELPERS ==========
+function getWeekKey(offset = 0) {
+  const now = new Date();
+  // Week runs Friday to Thursday
+  // Find last Friday
+  const day = now.getDay(); // 0=sun,1=mon,...,5=fri,6=sat
+  const daysToLastFri = (day + 2) % 7; // fri=0, sat=1, sun=2, mon=3, tue=4, wed=5, thu=6
+  const fri = new Date(now);
+  fri.setDate(now.getDate() - daysToLastFri + (offset * 7));
+  const thu = new Date(fri);
+  thu.setDate(fri.getDate() + 6);
+  return { 
+    key: fri.toISOString().slice(0,10),
+    label: `${fmt(fri)} → ${fmt(thu)}`,
+    fri, thu
+  };
+}
+function fmt(d) {
+  return d.toLocaleDateString('fr-BE', { day:'numeric', month:'short' });
+}
+
+// ========== SUPABASE LOAD/SAVE ==========
+async function loadWeek(key) {
+  const { data } = await db.from('lena_weeks').select('*').eq('week_key', key).single();
+  return data || { week_key: key, tasks: {}, squirrels: 0 };
+}
+async function saveWeek() {
+  await db.from('lena_weeks').upsert({ week_key: weekKey, tasks: state.tasks, squirrels: state.squirrels });
+}
+async function loadRecipes() {
+  const { data } = await db.from('lena_recipes').select('*').order('created_at', {ascending:false});
+  return data || [];
+}
+async function loadHistory() {
+  const { data } = await db.from('lena_weeks').select('*').order('week_key', {ascending:false}).limit(10);
+  return data || [];
+}
+
+// ========== SCORE CALC ==========
+// Génère les 7 dates de la semaine (ven → jeu)
+function getWeekDates(fridayKey) {
+  const dates = [];
+  const fri = new Date(fridayKey + 'T12:00:00Z');
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(fri);
+    d.setUTCDate(fri.getUTCDate() + i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function calcScore(s, wKey) {
+  let pts = s.squirrels || 0;
+  let pen = 0;
+  const tasks = s.tasks || {};
+  const dates = getWeekDates(wKey || weekKey);
+
+  for (const t of TASKS) {
+    if (DAILY_TASKS.includes(t.id)) {
+      // Cumule sur chaque jour de la semaine
+      for (const d of dates) {
+        const st = tasks[t.id + '_' + d];
+        if (st === 'done') pts += t.pts;
+        if (st === 'failed') { pts += t.fail; pen += Math.abs(t.fail); }
+      }
+    } else {
+      const st = tasks[t.id];
+      if (st === 'done') pts += t.pts;
+      if (st === 'failed') { pts += t.fail; pen += Math.abs(t.fail); }
+    }
+  }
+  return { pts, pen };
+}
+
+function calcPotential() {
+  let pot = 0;
+  for (const t of TASKS) {
+    if (t.pts > 0) {
+      // Les daily tasks comptent 7x dans le potentiel max
+      pot += DAILY_TASKS.includes(t.id) ? t.pts * 7 : t.pts;
+    }
+  }
+  pot += (state.squirrels || 0);
+  return pot;
+}
+function toEuro(pts) {
+  const val = Math.max(0, pts);
+  return val.toFixed(2).replace('.', ',') + ' €';
+}
+
+// ========== RENDER HOME ==========
+function renderHome() {
+  const week = getWeekKey(0);
+  document.getElementById('headerWeek').textContent = `Semaine en cours`;
+  document.getElementById('headerDates').textContent = week.label;
+
+  const { pts, pen } = calcScore(state, weekKey);
+  const pot = calcPotential();
+  
+  document.getElementById('currentPoints').textContent = pts;
+  document.getElementById('currentEuro').textContent = '💶 ' + toEuro(pts);
+  document.getElementById('potentialPoints').textContent = pot;
+  document.getElementById('potentialEuro').textContent = toEuro(pot);
+  document.getElementById('penaltyPoints').textContent = pen > 0 ? '-' + pen : '0';
+
+  const pct = pot > 0 ? Math.min(100, Math.max(0, (pts / pot) * 100)) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  document.getElementById('squirrelCount').textContent = state.squirrels || 0;
+
+  renderTaskSection('habitsSection', TASKS.filter(t => t.cat === 'habits'));
+  renderTaskSection('choresSection', TASKS.filter(t => t.cat === 'chores'));
+  renderTaskSection('cookSection', TASKS.filter(t => t.cat === 'cook'));
+}
+
+function renderTaskSection(containerId, tasks) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  for (const t of tasks) {
+    el.appendChild(buildTaskCard(t));
+  }
+}
+
+function buildTaskCard(t) {
+  const div = document.createElement('div');
+  div.className = 'task-card';
+  div.id = 'card-' + t.id;
+  
+  const st = getTaskState(t.id);
+  if (st === 'done') div.classList.add('done');
+  if (st === 'failed') div.classList.add('failed');
+
+  // Pour les tâches daily, on affiche le récap des jours passés
+  if (DAILY_TASKS.includes(t.id)) {
+    const dates = getWeekDates(weekKey);
+    const today = todayKey();
+    const dots = dates.map(d => {
+      if (d > today) return '<span style="color:#E5E7EB;font-size:14px">●</span>';
+      const s = (state.tasks || {})[t.id + '_' + d];
+      if (s === 'done') return '<span style="color:var(--mint);font-size:14px">●</span>';
+      if (s === 'failed') return '<span style="color:#EF4444;font-size:14px">●</span>';
+      return '<span style="color:#D1D5DB;font-size:14px">●</span>';
+    }).join(' ');
+    const dayNames = ['V','S','D','L','M','M','J'];
+    t = {...t, sub: dots + '<br><span style="font-size:10px;color:var(--muted);letter-spacing:3px">V S D L M M J</span>'};
+  }
+
+  let ptsLabel = '';
+  if (t.type === 'yesno' || t.type === 'room') {
+    if (t.pts !== 0 && t.fail !== 0) ptsLabel = `<span class="task-points both">+${t.pts} / ${t.fail}</span>`;
+    else if (t.pts !== 0) ptsLabel = `<span class="task-points pos">+${t.pts}</span>`;
+    else ptsLabel = `<span class="task-points neg">${t.fail}</span>`;
+  } else {
+    ptsLabel = `<span class="task-points pos">+${t.pts}</span>`;
+  }
+
+  let stateDisplay = '';
+  if (st === 'done') stateDisplay = `<span class="state-chip success">✓ Fait</span>`;
+  if (st === 'failed') stateDisplay = `<span class="state-chip fail">✗ Raté</span>`;
+
+  div.innerHTML = `
+    <div class="task-inner">
+      <div class="task-emoji">${t.emoji}</div>
+      <div class="task-info">
+        <div class="task-name">${t.name}</div>
+        <div class="task-sub" id="sub-${t.id}"></div>
+      </div>
+      ${stateDisplay || ptsLabel}
+    </div>
+    <div class="task-actions" id="actions-${t.id}"></div>
+  `;
+
+  const subEl = div.querySelector('#sub-' + t.id);
+  if (subEl) subEl.innerHTML = t.sub;
+
+  const actions = div.querySelector('#actions-' + t.id);
+  if (!st) {
+    if (t.type === 'yesno') {
+      const btnY = document.createElement('button');
+      btnY.className = 'btn-action btn-yes';
+      btnY.textContent = '✓ Oui !';
+      btnY.onclick = () => markTask(t.id, 'done', t);
+      const btnN = document.createElement('button');
+      btnN.className = 'btn-action btn-no';
+      btnN.textContent = '✗ Non';
+      btnN.onclick = () => markTask(t.id, 'failed', t);
+      actions.appendChild(btnY);
+      actions.appendChild(btnN);
+    } else if (t.type === 'done') {
+      const btn = document.createElement('button');
+      btn.className = 'btn-action btn-done';
+      btn.textContent = '✓ Fait !';
+      btn.onclick = () => markTask(t.id, 'done', t);
+      actions.appendChild(btn);
+    }
+  } else {
+    const btnU = document.createElement('button');
+    btnU.className = 'btn-undo';
+    btnU.textContent = '↩ Annuler';
+    btnU.onclick = () => markTask(t.id, null, t);
+    actions.appendChild(btnU);
+  }
+
+  return div;
+}
+
+async function markTask(id, status, t) {
+  if (!state.tasks) state.tasks = {};
+  state.tasks[taskStoreKey(id)] = status;
+  
+  if (status === 'done' && t.pts > 0) {
+    showReward(`+${t.pts} pts ! ${t.emoji}`);
+    playSound('reward');
+  } else if (status === 'done' && t.pts === 0) {
+    showReward(`Bravo, plat cuisiné ! ${t.emoji}`);
+    playSound('reward');
+  } else if (status === 'failed' && t.fail < 0) {
+    showReward(`${t.fail} pts 😬`, true);
+    playSound('fail');
+  } else if (status === null) {
+    // undo
+  }
+
+  await saveWeek();
+  renderHome();
+}
+
+function changeSquirrels(n) {
+  state.squirrels = Math.max(0, (state.squirrels || 0) + n);
+  if (n > 0) { showReward('+1 🐿️ écureuil !'); playSound('squirrel'); }
+  saveWeek();
+  renderHome();
+}
+
+// ========== SOUNDS ==========
+function playSound(type) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  if (type === 'reward') {
+    // Happy ascending ding
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq;
+      o.type = 'sine';
+      g.gain.setValueAtTime(0.3, ctx.currentTime + i*0.1);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.1 + 0.3);
+      o.start(ctx.currentTime + i*0.1);
+      o.stop(ctx.currentTime + i*0.1 + 0.3);
+    });
+  } else if (type === 'fail') {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(300, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5);
+    g.gain.setValueAtTime(0.2, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    o.start(); o.stop(ctx.currentTime + 0.5);
+  } else if (type === 'squirrel') {
+    [880, 1100, 880, 1320].forEach((freq, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq;
+      o.type = 'triangle';
+      g.gain.setValueAtTime(0.2, ctx.currentTime + i*0.07);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.07 + 0.12);
+      o.start(ctx.currentTime + i*0.07);
+      o.stop(ctx.currentTime + i*0.07 + 0.12);
+    });
+  }
+}
+
+// ========== TOAST / REWARD ==========
+function showReward(msg, fail=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = fail 
+    ? 'linear-gradient(135deg,#EF4444,#B91C1C)'
+    : 'linear-gradient(135deg,#FF4DA6,#A855F7)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+
+  // Floating number
+  const el = document.createElement('div');
+  el.className = 'float-reward';
+  el.textContent = msg;
+  el.style.color = fail ? '#EF4444' : '#FF4DA6';
+  el.style.left = Math.random() * 60 + 20 + '%';
+  el.style.top = '40%';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+// ========== CONFETTI ==========
+function initConfetti() {
+  const bar = document.getElementById('confettiBg');
+  const colors = ['#FFB3D9','#E9D5FF','#FEF9C3','#D1FAE5','#FFEDD5'];
+  for (let i = 0; i < 12; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-item';
+    el.style.cssText = `
+      left:${Math.random()*100}%;
+      top:${-Math.random()*20}px;
+      background:${colors[i%colors.length]};
+      animation-duration:${2+Math.random()*2}s;
+      animation-delay:${Math.random()*2}s;
+      width:${6+Math.random()*6}px;
+      height:${6+Math.random()*6}px;
+      border-radius:${Math.random()>0.5?'50%':'3px'};
+    `;
+    bar.appendChild(el);
+  }
+}
+
+// ========== SCREENS ==========
+function showScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'recipes') renderRecipes();
+}
+
+// ========== HISTORY ==========
+async function renderHistory() {
+  history = await loadHistory();
+  const el = document.getElementById('historyContent');
+  if (!history.length) { el.innerHTML = '<p style="text-align:center;padding:20px;color:var(--muted)">Pas encore d\'historique 😊</p>'; return; }
+  
+  el.innerHTML = '';
+  for (const w of history) {
+    const fake = { tasks: w.tasks || {}, squirrels: w.squirrels || 0 };
+    const { pts } = calcScore(fake, w.week_key);
+    const earned = toEuro(pts);
+    const div = document.createElement('div');
+    div.className = 'history-week';
+    div.innerHTML = `
+      <h3>📅 Semaine du ${w.week_key}</h3>
+      <div class="history-row"><span>Points</span><span><strong>${pts}</strong></span></div>
+      <div class="history-row"><span>Écureuils</span><span>${w.squirrels || 0} 🐿️</span></div>
+      <div class="history-row"><span>💶 Argent gagné</span><span style="color:var(--pink);font-size:16px">${earned}</span></div>
+    `;
+    el.appendChild(div);
+  }
+}
+
+// ========== RECIPES ==========
+async function renderRecipes() {
+  recipes = await loadRecipes();
+  const el = document.getElementById('recipesContent');
+  if (!recipes.length) { 
+    el.innerHTML = '<p style="text-align:center;padding:20px;color:var(--muted)">Ton livre est vide... cuisine quelque chose ! 👩‍🍳</p>'; 
+    return; 
+  }
+  el.innerHTML = '';
+  for (const r of recipes) {
+    const div = document.createElement('div');
+    div.className = 'recipe-card';
+    div.innerHTML = `
+      <div class="recipe-header">
+        <h3>👩‍🍳 ${r.name}</h3>
+        <span class="badge">+15 pts ✓</span>
+      </div>
+      <div class="recipe-body">${r.description || ''}</div>
+    `;
+    el.appendChild(div);
+  }
+}
+
+function openModal() { document.getElementById('recipeModal').classList.add('open'); }
+function closeModal() { document.getElementById('recipeModal').classList.remove('open'); }
+
+async function saveRecipe() {
+  const name = document.getElementById('recipeName').value.trim();
+  const desc = document.getElementById('recipeDesc').value.trim();
+  if (!name) return;
+  
+  await db.from('lena_recipes').insert({ name, description: desc });
+  // Award 15 pts
+  if (!state.tasks) state.tasks = {};
+  state.tasks['recipe_' + Date.now()] = 'done';
+  state.squirrels = (state.squirrels || 0); // pts via direct injection
+  // Actually store recipe bonus separately
+  state.recipe_bonus = (state.recipe_bonus || 0) + 15;
+  await saveWeek();
+
+  closeModal();
+  document.getElementById('recipeName').value = '';
+  document.getElementById('recipeDesc').value = '';
+  showReward('+15 pts ! Nouveau plat ! 🎉');
+  playSound('reward');
+  renderRecipes();
+}
+
+// ========== INIT ==========
+async function init() {
+  initConfetti();
+  const w = getWeekKey(0);
+  weekKey = w.key;
+  const loaded = await loadWeek(weekKey);
+  state = { tasks: loaded.tasks || {}, squirrels: loaded.squirrels || 0, recipe_bonus: loaded.recipe_bonus || 0 };
+  renderHome();
+}
+
+// Override calcScore to include recipe bonus
+const _calcScore = calcScore;
+window.calcScore = function(s) {
+  const r = _calcScore(s, weekKey);
+  r.pts += (s.recipe_bonus || 0);
+  return r;
+};
+
+init();
+</script>
+</body>
+</html>
