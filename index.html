@@ -793,7 +793,10 @@ async function loadWeek(key) {
   return data || { week_key: key, tasks: {}, squirrels: 0 };
 }
 async function saveWeek() {
-  await db.from('lena_weeks').upsert({ week_key: weekKey, tasks: state.tasks, squirrels: state.squirrels });
+  await db.from('lena_weeks').upsert(
+    { week_key: weekKey, tasks: state.tasks, squirrels: state.squirrels, recipe_bonus: state.recipe_bonus || 0 },
+    { onConflict: 'week_key' }
+  );
 }
 async function loadRecipes() {
   const { data } = await db.from('lena_recipes').select('*').order('created_at', {ascending:false});
