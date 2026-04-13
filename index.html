@@ -759,6 +759,13 @@ function getTaskState(id) {
   return (state.tasks || {})[taskStoreKey(id)] || null;
 }
 
+// ========== SAVE DEBOUNCE ==========
+let saveTimer = null;
+function scheduleSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveWeek(); saveTimer = null; }, 600);
+}
+
 // ========== WEEK HELPERS ==========
 function getWeekKey(offset = 0) {
   const now = new Date();
@@ -989,7 +996,7 @@ async function markTask(id, status, t) {
 function changeSquirrels(n) {
   state.squirrels = Math.max(0, (state.squirrels || 0) + n);
   if (n > 0) { showReward('+1 🐿️ écureuil !'); playSound('squirrel'); }
-  saveWeek();
+  scheduleSave();
   renderHome();
 }
 
